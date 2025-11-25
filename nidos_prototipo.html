@@ -1,0 +1,492 @@
+<!-- Guarda este archivo como: nidos_prototipo.html -->
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NIDOS - Prototipo Panel (Mapa real)</title>
+  <style>
+    :root{
+      --bg: #f6fbfa;
+      --card: #ffffff;
+      --muted: #6b7c73;
+      --green: #2aa37a;
+      --green-2: #4cc79a;
+      --accent: #88d4b0;
+      --danger: #e45b5b;
+      --shadow: 0 8px 30px rgba(34,60,50,0.08);
+      font-family: Inter, "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{
+      margin:0;
+      background: linear-gradient(180deg, #f6fbfa 0%, #ffffff 100%);
+      color:#12331f;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:20px;
+      font-size:15px;
+    }
+
+    .wrap{
+      max-width:1200px;
+      margin:0 auto;
+    }
+
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:14px;
+    }
+    .brand{display:flex;gap:12px;align-items:center;}
+    .logo{
+      width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,var(--green),var(--green-2));
+      display:flex;align-items:center;justify-content:center;color:white;font-weight:700;box-shadow:var(--shadow);
+      font-size:18px;
+    }
+    h1{margin:0;font-size:20px;}
+    .lead{margin:0;color:var(--muted);font-size:13px;}
+
+    /* Layout desktop */
+    .layout{
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:18px;
+      align-items:start;
+    }
+
+    /* Map card */
+    .card{
+      background:var(--card);
+      border-radius:12px;
+      padding:12px;
+      box-shadow:var(--shadow);
+      border:1px solid rgba(0,0,0,0.03);
+    }
+
+    .map-box{
+      position:relative;
+      border-radius:10px;
+      overflow:hidden;
+      background:#f3fbfa;
+      height:480px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .map-img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+    }
+
+    /* Markers */
+    .marker{
+      position:absolute;
+      width:20px;height:20px;border-radius:999px;border:3px solid white;
+      box-shadow:0 6px 18px rgba(0,0,0,0.18);
+      cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:30;
+      transition:transform .12s ease;
+    }
+    .marker:hover{transform:scale(1.15);}
+    .marker.green{background:var(--green);}
+    .marker.yellow{background:#f7b844;}
+    .marker.red{background:var(--danger);}
+
+    /* Tooltip */
+    .tooltip{
+      position:absolute;
+      background:rgba(255,255,255,0.95);
+      padding:8px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);
+      box-shadow:0 6px 20px rgba(0,0,0,0.12);
+      font-size:13px;color:#122a1f;white-space:nowrap;transform-origin:left top;
+      pointer-events:none;opacity:0;transition:opacity .12s ease, transform .12s ease;
+      z-index:40;
+    }
+
+    /* Right panel (indicator) */
+    .panel-right{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .indicator{
+      background:linear-gradient(180deg, #ffffff, #f7fffb);
+      padding:16px;border-radius:12px;border:1px solid rgba(0,0,0,0.04);box-shadow:var(--shadow);
+      text-align:center;
+    }
+    .indicator small{display:block;color:var(--muted);margin-bottom:6px;}
+    .indicator .big{font-size:26px;font-weight:700;color:var(--green);margin:6px 0;}
+    .controls{display:flex;gap:8px;justify-content:center;margin-top:8px;}
+    .btn{background:var(--green);color:white;border:0;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600;}
+    .btn.ghost{background:transparent;color:var(--muted);border:1px solid rgba(0,0,0,0.06);}
+
+    .meta{font-size:13px;color:var(--muted);text-align:center}
+
+    /* small area info under map (list of zones) */
+    .zones-row{display:flex;gap:10px;margin-top:12px;align-items:stretch;}
+    .zone-card{flex:1;background:var(--card);padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.04);display:flex;justify-content:space-between;align-items:center}
+    .badge{padding:6px 9px;border-radius:999px;color:white;font-weight:700;font-size:13px}
+    .badge.green{background:var(--green)}
+    .badge.yellow{background:#f7b844;color:#4a2b00}
+    .badge.red{background:var(--danger)}
+
+    /* Modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(10,14,12,0.35);display:none;align-items:center;justify-content:center;z-index:160;}
+    .modal{width:460px;max-width:94%;background:var(--card);border-radius:10px;padding:18px;box-shadow:0 18px 40px rgba(10,14,12,0.3);}
+    label{display:block;margin-bottom:6px;color:var(--muted);font-size:13px}
+    input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);margin-bottom:10px;font-size:14px;background:#fbfffe}
+    .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
+    .toast{position:fixed;right:18px;bottom:18px;background:var(--green);color:white;padding:12px 16px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.18);display:none;z-index:200}
+
+    /* Responsive: mobile */
+    @media (max-width:920px){
+      .layout{grid-template-columns:1fr;gap:12px}
+      .map-box{height:380px}
+      /* indicator centered on top */
+      .panel-right{order:-1}
+      .indicator{margin:0 auto;width:92%}
+      header{flex-direction:column;align-items:flex-start;gap:8px}
+    }
+    @media (max-width:520px){
+      .map-box{height:320px}
+    }
+
+    /* small decorative */
+    footer{margin-top:14px;color:var(--muted);font-size:13px;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">N</div>
+        <div>
+          <h1>NIDOS — Sistema de Monitoreo</h1>
+          <div class="lead">Prevención de inundaciones — Mercado de Abastos, Guadalajara</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div style="text-align:right;font-size:13px;color:var(--muted)">
+          <div></div>
+          <div class="meta"></div>
+        </div>
+        <button id="openReport" class="btn">Reportar inundación</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- Left: Map and small zone cards -->
+      <section class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <strong>Panel de monitoreo</strong>
+            <div style="font-size:13px;color:var(--muted)">Mapa con zonas y niveles</div>
+          </div>
+          <div style="font-size:13px;color:var(--muted)">Último reporte: <span id="lastReport">—</span></div>
+        </div>
+
+        <div class="map-box" style="margin-top:12px;">
+          <!-- mapa.jpg debe estar en la misma carpeta -->
+          <img src="mapa.jpeg" alt="Mapa Mercado de Abastos" class="map-img" id="mapImg">
+
+          <!-- Markers: posiciones en % relativas al contenedor -->
+          <!-- Zona Norte -->
+          <div class="marker green" id="m-norte" data-zone="norte" style="left:18%; top:40%;" aria-label="Zona Norte" title="">
+          </div>
+          <!-- Zona Central -->
+          <div class="marker yellow" id="m-central" data-zone="central" style="left:48%; top:40%;" aria-label="Zona Central" title="">
+          </div>
+          <!-- Zona Sur -->
+          <div class="marker red" id="m-sur" data-zone="sur" style="left:78%; top:62%;" aria-label="Zona Sur" title="">
+          </div>
+
+          <!-- Tooltip -->
+          <div class="tooltip" id="tooltip" role="status" aria-live="polite"></div>
+        </div>
+
+        <div class="zones-row" style="margin-top:12px;">
+          <div class="zone-card">
+            <div>
+              <strong>Zona Norte</strong><div style="font-size:12px;color:var(--muted)">Nivel estimado</div>
+            </div>
+            <div id="badge-norte" class="badge green">20%</div>
+          </div>
+
+          <div class="zone-card">
+            <div>
+              <strong>Zona Central</strong><div style="font-size:12px;color:var(--muted)">Nivel estimado</div>
+            </div>
+            <div id="badge-central" class="badge yellow">60%</div>
+          </div>
+
+          <div class="zone-card">
+            <div>
+              <strong>Zona Sur</strong><div style="font-size:12px;color:var(--muted)">Nivel estimado</div>
+            </div>
+            <div id="badge-sur" class="badge red">85%</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: indicator -->
+      <aside class="panel-right">
+        <div class="indicator">
+          <small>Nivel del agua</small>
+          <div class="big" id="mainPercent">60% de su capacidad</div>
+          <div style="font-size:13px;color:var(--muted)">Valor — se actualiza con reportes</div>
+
+          <div class="controls" style="margin-top:12px">
+            <button id="btnRefresh" class="btn ghost">Muestreo</button>
+            <button id="btnReport" class="btn">Reportar</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:12px;">
+          <strong>Acciones rápidas</strong>
+          <div style="font-size:13px;color:var(--muted);margin-top:8px">Usa los marcadores sobre el mapa o el botón para abrir el formulario de reporte.</div>
+        </div>
+      </aside>
+    </div>
+
+    <footer>Prototipo conceptual · NIDOS — Mercado de Abastos de Guadalajara · Demostración visualN de funcionamiento</footer>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h3 id="modalTitle">Reportar inundación</h3>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px">Rellena la información un reporte.</div>
+
+      <label for="nombre">Nombre del locatario</label>
+      <input id="nombre" type="text" placeholder="Ej. María Pérez">
+
+      <label for="numLocal">Número de local</label>
+      <input id="numLocal" type="text" placeholder="Ej. L-24">
+
+      <label for="zona">Zona</label>
+      <select id="zona">
+        <option value="norte">Zona Norte</option>
+        <option value="central" selected>Zona Central</option>
+        <option value="sur">Zona Sur</option>
+      </select>
+
+      <label for="nivel">Nivel estimado de agua (%)</label>
+      <input id="nivel" type="number" min="0" max="200" value="60">
+
+      <label for="coment">Comentarios</label>
+      <textarea id="coment" placeholder="Breve descripción..."></textarea>
+
+      <div class="modal-actions">
+        <button id="closeModal" class="btn ghost">Cancelar</button>
+        <button id="sendReport" class="btn">Enviar reporte</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite">Reporte enviado</div>
+
+  <script>
+    // Estado demo inicial
+    const state = {
+      norte: 20,
+      central: 60,
+      sur: 85,
+      lastReport: null
+    };
+
+    // util actualizar UI
+    function updateUI(){
+      document.getElementById('badge-norte').textContent = state.norte + '%';
+      document.getElementById('badge-central').textContent = state.central + '%';
+      document.getElementById('badge-sur').textContent = state.sur + '%';
+
+      // actualizar colores
+      function setBadge(el, v){
+        el.classList.remove('green','yellow','red');
+        if(v < 40) el.classList.add('green');
+        else if(v < 75) el.classList.add('yellow');
+        else el.classList.add('red');
+      }
+      setBadge(document.getElementById('badge-norte'), state.norte);
+      setBadge(document.getElementById('badge-central'), state.central);
+      setBadge(document.getElementById('badge-sur'), state.sur);
+
+      // main percent: mostrar "Nivel del agua: X% de su capacidad"
+      const avg = Math.round((state.norte + state.central + state.sur)/3);
+      document.getElementById('mainPercent').textContent = avg + '% de su capacidad';
+      document.getElementById('lastReport').textContent = state.lastReport ? state.lastReport : '—';
+
+      // actualizar tooltip text si está visible
+      const tt = document.getElementById('tooltip');
+      if(tt.dataset.zone){
+        const z = tt.dataset.zone;
+        let v = state[z];
+        tt.textContent = `${labelOf(z)} — Nivel: ${v}%`;
+      }
+    }
+
+    function labelOf(zone){
+      if(zone === 'norte') return 'Zona Norte';
+      if(zone === 'central') return 'Zona Central';
+      if(zone === 'sur') return 'Zona Sur';
+      return '';
+    }
+
+    // Modal control
+    const modal = document.getElementById('modal');
+    const openReport = document.getElementById('openReport');
+    const btnReport = document.getElementById('btnReport');
+    const closeModal = document.getElementById('closeModal');
+    const sendReport = document.getElementById('sendReport');
+    const toast = document.getElementById('toast');
+
+    function showModal(){ modal.style.display = 'flex'; modal.setAttribute('aria-hidden','false'); }
+    function hideModal(){ modal.style.display = 'none'; modal.setAttribute('aria-hidden','true'); }
+
+    openReport.addEventListener('click', showModal);
+    btnReport.addEventListener('click', showModal);
+    closeModal.addEventListener('click', hideModal);
+
+    // markers and tooltip logic
+    const markers = [
+      {id:'m-norte', zone:'norte'},
+      {id:'m-central', zone:'central'},
+      {id:'m-sur', zone:'sur'}
+    ];
+    const tooltip = document.getElementById('tooltip');
+
+    markers.forEach(m => {
+      const el = document.getElementById(m.id);
+      // mouseenter: show tooltip
+      el.addEventListener('mouseenter', (e) => {
+        const zone = m.zone;
+        const val = state[zone];
+        tooltip.textContent = `${labelOf(zone)} — Nivel: ${val}%`;
+        tooltip.style.opacity = '1';
+        tooltip.dataset.zone = zone;
+        positionTooltip(e);
+      });
+      // mousemove: follow
+      el.addEventListener('mousemove', (e) => positionTooltip(e));
+      // mouseleave: hide
+      el.addEventListener('mouseleave', () => {
+        tooltip.style.opacity = '0';
+        tooltip.dataset.zone = '';
+      });
+      // click: open modal with zone selected
+      el.addEventListener('click', () => {
+        document.getElementById('zona').value = m.zone;
+        showModal();
+        // focus on nivel input
+        setTimeout(()=>document.getElementById('nivel').focus(), 150);
+      });
+      // touch support: tap toggles modal
+      el.addEventListener('touchstart', (ev) => {
+        ev.preventDefault();
+        document.getElementById('zona').value = m.zone;
+        showModal();
+      }, {passive:false});
+    });
+
+    function positionTooltip(e){
+      const tt = tooltip;
+      const mapBox = document.querySelector('.map-box');
+      const rect = mapBox.getBoundingClientRect();
+      // compute coordinates
+      let x = e.clientX - rect.left + 12;
+      let y = e.clientY - rect.top - 10;
+      // keep inside
+      if(x + tt.offsetWidth > rect.width) x = rect.width - tt.offsetWidth - 8;
+      if(y < 8) y = 8;
+      tt.style.left = x + 'px';
+      tt.style.top = y + 'px';
+    }
+
+    // send report simulation
+    sendReport.addEventListener('click', () => {
+      const nombre = document.getElementById('nombre').value.trim();
+      const numLocal = document.getElementById('numLocal').value.trim();
+      const zona = document.getElementById('zona').value;
+      const nivel = Number(document.getElementById('nivel').value);
+      const coment = document.getElementById('coment').value.trim();
+
+      if(!nombre || !numLocal || isNaN(nivel)){
+        alert('Por favor completa Nombre, Número de local y Nivel (%)');
+        return;
+      }
+
+      // simular guardar reporte (actualizar estado)
+      state.lastReport = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      state[zona] = Math.min(200, Math.max(0, Math.round(nivel))); // permitir valores >100 si se quiere
+
+      updateUI();
+      hideModal();
+      showToast('✅ Reporte enviado correctamente — actualizado en el panel');
+
+      // limpiar campos
+      document.getElementById('nombre').value = '';
+      document.getElementById('numLocal').value = '';
+      document.getElementById('coment').value = '';
+    });
+
+    // toast
+    function showToast(msg, timeout=2800){
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(()=>{ toast.style.display = 'none'; }, timeout);
+    }
+
+    // simulate muestreo
+    document.getElementById('btnRefresh').addEventListener('click', () => {
+      state.norte = Math.min(200, Math.max(0, state.norte + (Math.random()*10 -5 | 0)));
+      state.central = Math.min(200, Math.max(0, state.central + (Math.random()*10 -5 | 0)));
+      state.sur = Math.min(200, Math.max(0, state.sur + (Math.random()*10 -5 | 0)));
+      state.lastReport = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      updateUI();
+      showToast('Muestreo simulado actualizado');
+    });
+
+    // initial UI
+    updateUI();
+
+    // close modal with ESC
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape') hideModal();
+    });
+
+    // click outside modal to close
+    document.getElementById('modal').addEventListener('click', (e) => {
+      if(e.target === document.getElementById('modal')) hideModal();
+    });
+
+    // make markers reposition if image resizes (responsive) - use percentages already set in style
+    // If you want to fine-tune positions, adjust left/top % on marker elements in HTML.
+
+    // accessibility: show tooltip when focusing via keyboard
+    ['m-norte','m-central','m-sur'].forEach(id=>{
+      const el = document.getElementById(id);
+      el.setAttribute('tabindex','0');
+      el.addEventListener('focus', (e)=>{
+        const zone = el.dataset.zone;
+        tooltip.textContent = `${labelOf(zone)} — Nivel: ${state[zone]}%`;
+        tooltip.style.opacity = '1';
+        tooltip.dataset.zone = zone;
+        // position tooltip near element center
+        const rect = el.getBoundingClientRect();
+        const mapRect = document.querySelector('.map-box').getBoundingClientRect();
+        const x = rect.left - mapRect.left + rect.width + 8;
+        const y = rect.top - mapRect.top + rect.height/2 - 10;
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
+      });
+      el.addEventListener('blur', ()=>{ tooltip.style.opacity = '0'; tooltip.dataset.zone=''; });
+    });
+  </script>
+</body>
+</html>
